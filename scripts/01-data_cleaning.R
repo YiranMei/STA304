@@ -31,6 +31,6 @@ rm(raw_data)
 
 #### What's next? ####
 
-
+data5 <- data %>% filter(a =="b")
 
          
