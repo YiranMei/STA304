@@ -1,0 +1,209 @@
+---
+title: "The Trend and Distribution of the Budget of the Toronto Police Service"
+author: "Yiran Mei"
+date: "2022/2/3"
+output: pdf_document
+abstract: " Budget spending is essential for assessing the officers’ performance, evaluating the social conditions, and planning for future use of resources. This report utilizes data on the approved budget and actual expenditure of the Toronto Police Service to measure the trend and distribution and provide insight for some advocates of the funding of police services. The total amount of approved budget and expenditure illustrated the same trend of decreasing from 2016 to 2018 and growing substantially between 2018 and 2020. The actual expenditure appeared to be lower than the budget during the whole period, while the salaries expense took up the most significant proportion of the total spending. However, this report may be biased due to the possibility of inaccurate reports from the raw data published."
+bibliography: ref_list.bib
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(kableExtra)
+library(opendatatoronto)
+library(tidyverse)
+```
+
+
+
+```{r, include=FALSE}
+ 
+# get package
+package <- show_package("21669291-90d8-4b7f-ab4a-ae9c02eaab7e")
+package
+ 
+# get all resources for this package
+resources <- list_package_resources("21669291-90d8-4b7f-ab4a-ae9c02eaab7e")
+ 
+# identify datastore resources; by default, Toronto Open Data sets datastore resource format to CSV for non-geospatial and GeoJSON for geospatial resources
+datastore_resources <- filter(resources, tolower(format) %in% c('csv', 'geojson'))
+ 
+# load the first datastore resource as a sample
+data <- filter(datastore_resources, row_number()==1) %>% get_resource()
+data
+```
+
+	
+# 1.Introduction
+
+In order to provide the citizens with law enforcement and policing services, the Toronto Police Service(TPS) was established in 1834 as the oldest local police service in North America. It is overseen by the City of Toronto as one of its agencies, forming the largest municipal police service and one of the most significant police forces within the country. The officers of the TPS undertake a broad array of work. Despite the traditional duty of preventing and dealing with crime and being in charge of traffic service on 400-series highways of patrolling, they are also responsible for parking enforcement on all roads and public property, police dog services for suspects and missing people, resolving conflicts in communities, providing service to community mobilization unit, and reducing or preventing social disorder.  
+
+To accomplish the mission and goals, sufficient funding should be budgeted appropriately. Toronto City Council determines the TPS’s annual budget by voting on the funding level. Between 1986 and 2012, the Real per capita police expenditures in Canada rose more than 45%. In 2019 and 2020, the TPS ranked as the most considerable expense among all agencies under the City of Toronto at $1.035 billion and $1.076 billion, exceeding the Toronto Transit Commission (TTC) [@budget_summary]. A public sector salary disclosure also demonstrates in 2013 that 37.29% of the Toronto police force earned more than $100,0000 while the expenditure on police service had been increasing faster than the inflation and spending on other public agencies[@crime_rate,]. Considering the high expenditure on the TPS, there had been a rising concern in Canada to defund the police to align with the decline in workload as the criminal code incidents per officer dropped by 36.8%[@crime_rate,]. The movement of defunding police evoked from the United States due to the murder of George Floyd has also provoked the debate of whether to decrease the TPS budget and invest more public funding to promote public safety[@defunding].
+
+Therefore, it is essential to evaluate the police budget precisely to better measure the performance, understand its relationship with crime rates and public safety, assess the social order and security, and plan for more efficient use of public resources. In this report, open data published by the Toronto Police Service through the OpenDataToronto will be used to analyze the distribution and trend of the budget by commands and categories by using R (version 4.1.2). More specifically, package tidyverse[@tidyverse], dplyr[@dplyr], ggplot2[@ggplot2], and kableExtra[@kableExtra] are utilized to analyze statistics, depict figures and tables, and generate the report.
+
+
+
+# 2. Data
+
+## 2.1 Data Source
+
+The Toronto Police Services published this dataset on Oct 20, 2021, through OpenDataToronto. The annual approved budget and actual expenditure from 2016 to 2020 are included at a service-wide level. The approved budget refers to the operating funding authorized by the Council and the TPS board for each year, while the actual expenditure denotes the incurring operating expenses incurred for that year. The dataset was obtained directly from the OpenDataToronto Portal using the R package opendatatoronto(Gelfand 2020).
+
+The data could be biased since there is a possibility that the report from the TPS committed fraud or mistakes. It might be overestimated or underestimated if the entries report were missing by mistake or intended to report falsely. It requires the further effort of auditing to ensure the validity of the report from the TPS and the accuracy of this report.
+
+## 2.2 Data Characteristics
+
+The reported data contains the approved budget and actual expenditure each year, classified by category and command from 2016 to 2020. There were 740 observations in the datasets with six characteristic variables: ID, year, type of metric, category, command and the amount. The first attribute ID was the identifier of each specific budget entry, while the second is the recorded year. The variable of type of metric indicates whether each entry is an approved budget or actual expenditure. The category variable specifies the budget category of the entry, including Salaries, Premium Pay, Benefits, Materials&Supplies, and Equipment. The command is a more detailed segmentation variable of each entry, stating the particular command of each entry among Centralized Service Charges, Corporate Support Command, Human Resources Command, Chief of Police, Information Technology Command, Parking Enforcement Unit, Priority Response Command, Specialized Operations Command, Toronto Police Services Board, and Communities&Neighbourhoods Command. A sample view of the dataset is displayed as below.
+
+
+```{r, echo=FALSE}
+head(data)
+```
+We group the entries by actual expenditure and approved budget into two new datasets to compare the projected and actual expenditure. Moreover, the actual expenditure of the TPS is more helpful to our goal of measuring the performance and making an efficient plan, while the approved budget is merely projected. The updated datasets are displayed below.
+
+```{r, echo = FALSE}
+data1 <- data %>% filter(Type_of_Metric =="Actual Expenditures")
+data2 <- data %>% filter(Type_of_Metric =="Approved Budget")
+head(data1)
+head(data2)
+```
+
+
+### 2.2.1.  Amount of Approved Budget and Actual Expenditure
+
+To interpret more clearly and more simply, we create a new variable called amount_by_billion that transforms the amount from dollar to billion dollars. From the summary Table 1&2 of the actual expenditure and approved budget in billion, we can see that the most outstanding amount of a single budget entry from 2016 to 2020 reached $276.15621 Billion. In contrast, the maximum budget approved was $307.9751 Billion, greater than the actual expenditure. The minimum amounts were ($86.03997) Billion for the actual expenditure and ($86.9982) Billion for the approved budget. A negative budget indicated a revenue entry that generated income for the TPS. The mean of actual expenditure and approved budget of $14.38856 Billion and $14.5210 Billion was significantly large compared to the median of $1.02123 Billion and $0.89705 Billion, which implied an extreme skewness to the right.
+
+```{r 1, echo=FALSE}
+amount_by_billion_1 = data1$Amount / 1000000
+
+summary1 <- data1 %>%  summarise(min = min(amount_by_billion_1),
+                                  Q1 = quantile(amount_by_billion_1,0.25),
+                                  median = median(amount_by_billion_1),
+                                  Q3 = quantile(amount_by_billion_1,0.75),
+                                  max = max(amount_by_billion_1),
+                                  IQR = Q3 - Q1,
+                                  mean = mean(amount_by_billion_1), 
+                                  sd = sd(amount_by_billion_1)) 
+
+
+amount_by_billion_2 = data2$Amount / 1000000
+
+summary2 <- data2 %>%  summarise(min = min(amount_by_billion_1),
+                                  Q1 = quantile(amount_by_billion_2,0.25),
+                                  median = median(amount_by_billion_2),
+                                  Q3 = quantile(amount_by_billion_2,0.75),
+                                  max = max(amount_by_billion_2),
+                                  IQR = Q3 - Q1,
+                                  mean = mean(amount_by_billion_2), 
+                                  sd = sd(amount_by_billion_2)) 
+
+
+
+knitr::kable(list(summary1, summary2), caption = "Actual Expenditure and Approved Budget")%>% kable_styling(latex_options = "HOLD_position") 
+
+
+
+```
+
+In Table 3&4 and Figure 1, we calculate and present the total amount of each year of both actual expenditure and approved budget. The pink line represents the trend of actual expenditure, and the green one is the approved budget. As we can see, the TPS's actual expenditure incurred each year was always lie below the approved budget level. Moreover, both lines follow a similar trend that the amounts slightly decreased from 2016 to 2017. The actual expenditure inclined in 2017, while the approved budget declined moderately, and then they both surged in 2019. In 2020, they increased less significantly. 
+
+
+```{r 2,  echo=FALSE}
+Amount_by_Year1 <- data1 %>%
+  select(Year, Amount)%>%
+  group_by(Year)%>%
+  summarise(TotalAmount = sum(Amount))
+
+Amount_by_Year2 <- data2 %>%
+  select(Year, Amount)%>%
+  group_by(Year)%>%
+  summarise(TotalAmount = sum(Amount))
+
+
+knitr::kable(list(Amount_by_Year1, Amount_by_Year2), caption = "Actual Expenditure and Approved Budget")%>% kable_styling(latex_options = "HOLD_position") 
+
+```
+
+```{r, fig.cap= "Annual Total Amount", echo=FALSE}
+plot(Amount_by_Year1, type = "b", col = "pink", xlab = "Year", ylab = "Total  Amount" ) 
+lines(Amount_by_Year2, type = "b", col="green")
+  
+```
+
+
+
+
+
+
+
+
+
+### 2.2.2.  Amount of Each Category
+
+From summarizing and plotting each actual expenditure entry's amount by category in Table 5 and Figure 2, it is perceivable that the salaries took up the majority of the spending. The minimum amount, median, and maximum were the highest among all. The TPS's second-largest expense from 2016 to 2018 was the benefit, which incurred $1.061639 of the spending.
+
+
+
+```{r,  fig.cap= "Amount of Each Category", echo=FALSE}
+ggplot(data1, aes(y = amount_by_billion_1, x= Category)) + geom_boxplot(width=0.5) + theme_classic()+
+  labs(x = "Catogory", y = "Budget Amount in Billion")
+
+```
+
+```{r, echo=FALSE}
+statistics1 <- group_by(data1, Category) %>% 
+summarise( min = min(Amount), max = max(Amount), 
+    mean = mean(Amount), 
+    median = median(Amount),
+    Total_Amount = sum(Amount))
+
+knitr::kable(statistics1, caption = "Entry Amount by Category")%>% kable_styling(latex_options = "HOLD_position") 
+```
+
+\newpage
+In Figure 3, we can observe and compare the expenditure on each category in each year. It is clear that salaries always spent the highest amount every year, and the salaries expense slightly decreased from 2016 to 2018 and then started to grow to a higher level. The revenues demonstrate an opposite trend that increased from 2016 to 2018 and then dropped. The expenditure on premium pay and services also showed a similar tendency as the revenues. The second-largest expense, benefit, remained steady over the period and the spendings on equipment and materials&supplies. The rank of each category also persisted the same every year.
+
+```{r,  fig.cap = "Amount of Each Category By Year", message=FALSE, echo = FALSE}
+summ<-data1 %>% group_by(Category, Year) %>% summarise(total = sum(Amount))
+ggplot(summ, aes(fill=Category, y=total, x=Year)) + 
+    geom_bar(position="dodge", stat="identity") + geom_line(linetype=2)
+```
+
+
+### 2.2.3.  Amount of Each Command
+
+In Table 6, we summarize the statistics of each entry by command type. The Priority Response Command spent the highest expenditure at $1.4299 Billion, while the second-largest expense was incurred for Communities & Neighbourhoods Command at $1.4100 Billion. The command type that spent the least was the Toronto Police Service Board, of only $10.7256 Million.
+
+
+```{r, message=FALSE, echo=FALSE}
+statistics2 <- group_by(data1, Command) %>% 
+summarise( min = min(Amount), max = max(Amount), 
+    mean = mean(Amount), 
+    median = median(Amount),
+    Total_Amount = sum(Amount))
+
+knitr::kable(statistics2, caption = "Entry Amount by Command")%>% kable_styling(latex_options = "HOLD_position") 
+
+
+```
+
+
+
+
+```{r, fig.cap = "Amount of Each Command By Year", message= FALSE, echo = FALSE}
+summ<-data1 %>% group_by(Command, Year) %>% summarise(total = sum(Amount))
+ggplot(summ, aes(fill=Command, y=total, x=Year)) + 
+    geom_bar(position="dodge", stat="identity") + geom_line(linetype=2)
+```
+ 
+By observing the distribution of expenditure on each command each year in Figure 4, we can see that the rank of the command changed over time. The spending on Communities & Neighbourhoods Command were the largest in 2016 and surpassed by the expense on Priority Response Command afterwards. The spending on Specialized Operations Command demonstrated a steady trend of climbing each year and reached the third largest expense in 2020. The expenditure on Centralized Service Charges transited from increasing to decreasing in 2019 and ranked fourth in 2020. The spendings on Corporate Support Command, Human Resources Command, Information Technology Command, and Parking Enforcement Unit followed a similar trend before 2019. After that, the expense on Information Technology Command grew relatively significant in 2019 and then declined slightly in 2020. The Chief of Police and Toronto Police Services Board expenditures remained at the level of least amount during the period.
+ \newpage
+
+# Reference
+
+
+
+
+
