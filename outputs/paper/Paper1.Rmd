@@ -6,6 +6,7 @@ output: pdf_document
 abstract: " Budget spending is essential for assessing the officers’ performance, evaluating the social conditions, and planning for future use of resources. This report utilizes data on the approved budget and actual expenditure of the Toronto Police Service to measure the trend and distribution and provide insight for some advocates of the funding of police services. The total amount of approved budget and expenditure illustrated the same trend of decreasing from 2016 to 2018 and growing substantially between 2018 and 2020. The actual expenditure appeared to be lower than the budget during the whole period, while the salaries expense took up the most significant proportion of the total spending. However, this report may be biased due to the possibility of inaccurate reports from the raw data published."
 bibliography: ref_list.bib
 ---
+Here is some body text.^[This footnote will appear at the bottom of the page.: https://github.com/YiranMei/STA304]
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
